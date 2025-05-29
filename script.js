@@ -605,47 +605,27 @@ function resizeCanvas() {
         return;
     }
 
-    const container = canvas.parentElement;
-    // Get the actual available space for the canvas within its container
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-
-    const targetAspectRatio = 16 / 9; // Desired aspect ratio for the game area
-
-    let newCanvasWidth = containerWidth;
-    let newCanvasHeight = containerHeight;
-
-    // Calculate dimensions to fit within container while maintaining aspect ratio
-    if (newCanvasWidth / newCanvasHeight > targetAspectRatio) {
-        // Container is wider than target aspect ratio, constrain by height
-        newCanvasWidth = newCanvasHeight * targetAspectRatio;
-    } else {
-        // Container is taller than target aspect ratio, constrain by width
-        newCanvasHeight = newCanvasWidth / targetAspectRatio;
-    }
-
-    // Store old dimensions to check if player needs re-centering
+    // Store old dimensions for player re-centering check
     const oldCanvasWidth = canvas.width;
     const oldCanvasHeight = canvas.height;
 
-    // Set the canvas element's actual drawing buffer size
-    canvas.width = newCanvasWidth;
-    canvas.height = newCanvasHeight;
+    // Let CSS handle the visual sizing (width: 100%, flex-grow, aspect-ratio, max-height)
+    // Then, set the canvas's internal drawing buffer size to match its *rendered* size.
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
 
-    // Set the canvas element's CSS size to match its drawing buffer size
-    canvas.style.width = `${newCanvasWidth}px`;
-    canvas.style.height = `${newCanvasHeight}px`;
+    console.log(`Canvas drawing buffer set to: ${canvas.width}x${canvas.height} (matching rendered size)`);
+    console.log(`Canvas CSS style (offsetWidth x offsetHeight): ${canvas.offsetWidth}x${canvas.offsetHeight}`);
 
-    console.log(`Canvas drawing buffer set to: ${canvas.width}x${canvas.height}`);
-    console.log(`Canvas CSS style set to: width: ${canvas.style.width}, height: ${canvas.style.height}`);
 
-    // Re-center player if canvas dimensions changed
+    // Adjust player position if canvas size changed
     if (oldCanvasWidth !== canvas.width || oldCanvasHeight !== canvas.height) {
         player.x = canvas.width / 2;
         player.y = canvas.height / 2;
         console.log(`Player position adjusted to (${player.x}, ${player.y}) due to resize.`);
     }
 
+    // Redraw game elements after resizing
     if (gameRunning) {
         draw();
         console.log("Redrawing after resize.");
@@ -984,7 +964,7 @@ function checkCatClawsAttack() {
                 // Only consider untrapped cats that haven't been targeted yet in this multi-attack
                 if (!cat.isTrapped && !targetedCats.has(cat)) {
                     const distance = Math.sqrt(
-                        (player.x - cat.x) ** 2 + (player.y - cat.y) ** 2
+                        (player.x - cat.x) ** 2 + (cat.y - cat.y) ** 2
                     );
                     if (distance <= CAT_CLAWS_RANGE && distance < minDistance) {
                         minDistance = distance;
@@ -1108,49 +1088,43 @@ function draw() {
 
 function drawPlayer() {
     if (!ctx) return;
-    // Ensure image is loaded and has valid dimensions before attempting to draw sprite
-    if (player.sprite.image && player.sprite.image.complete && player.sprite.image.naturalWidth > 0 && player.sprite.image.naturalHeight > 0) {
-        // Source rectangle on the sprite sheet
-        const bleedOffset = 0.5; // Small offset to prevent pixel bleeding from adjacent frames
+    if (player.sprite.image.complete && player.sprite.image.naturalWidth > 0 && player.sprite.image.naturalHeight > 0) {
+        const bleedOffset = 0.5;
         const sx = bleedOffset;
-        const sy = player.sprite.currentFrame * player.sprite.height + bleedOffset; // Calculate Y position based on current frame, with offset
-        const sWidth = player.sprite.width - (2 * bleedOffset); // Reduce width by twice the offset
-        const sHeight = player.sprite.height - (2 * bleedOffset); // Reduce height by twice the offset
+        const sy = player.sprite.currentFrame * player.sprite.height + bleedOffset;
+        const sWidth = player.sprite.width - (2 * bleedOffset);
+        const sHeight = player.sprite.height - (2 * bleedOffset);
 
-        ctx.save(); // Save the current canvas state before applying transformations/alpha
+        ctx.save();
 
         if (player.isInvulnerable) {
             if (Math.floor(player.invulnerabilityTimer / 10) % 2 === 0) {
-                ctx.globalAlpha = 0.5; // Apply invulnerability flicker
+                ctx.globalAlpha = 0.5;
             }
         }
 
-        // Draw the specific frame of the sprite sheet onto the canvas
         ctx.drawImage(
             player.sprite.image,
             sx,
             sy,
             sWidth,
             sHeight,
-            player.x - player.radius, // Destination X (center of player minus radius)
-            player.y - player.radius, // Destination Y (center of player minus radius)
-            player.radius * 2,         // Destination Width (player diameter)
-            player.radius * 2          // Destination Height (player diameter)
+            player.x - player.radius,
+            player.y - player.radius,
+            player.radius * 2,
+            player.radius * 2
         );
         
-        ctx.restore(); // Restore the canvas state (resets globalAlpha, etc.)
+        ctx.restore();
     } else {
-        // Fallback: Draw a circle if the sprite image is not loaded or invalid
-        console.warn("drawPlayer(): Player sprite not ready or invalid, drawing fallback circle. Image complete:", player.sprite.image.complete, "naturalWidth:", player.sprite.image.naturalWidth, "naturalHeight:", player.sprite.image.naturalHeight);
         ctx.beginPath();
         ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-        ctx.fillStyle = player.color; // Use player's color
+        ctx.fillStyle = player.color;
         ctx.fill();
-        ctx.strokeStyle = '#32CD32'; // Darker green border
+        ctx.strokeStyle = '#32CD32';
         ctx.lineWidth = 3;
         ctx.stroke();
         ctx.closePath();
-        console.log("drawPlayer(): Fallback circle drawn.");
     }
 }
 
@@ -1159,7 +1133,7 @@ function drawPuddles() {
     for (const puddle of puddles) {
         ctx.globalAlpha = puddle.alpha;
         if (puddle.sprite.image.complete && puddle.sprite.image.naturalWidth !== 0) {
-            const bleedOffset = 0.5; // Keep for puddles if they look fine
+            const bleedOffset = 0.5;
             const sx = bleedOffset;
             const sy = puddle.currentFrame * puddle.sprite.height + bleedOffset;
             const sWidth = puddle.sprite.width - (2 * bleedOffset);
@@ -1190,9 +1164,9 @@ function drawPuddles() {
 function drawCats() {
     if (!ctx) return;
     for (const cat of enemies) {
-        ctx.globalAlpha = 1; // Ensure cats are not affected by player's alpha
+        ctx.globalAlpha = 1;
         if (cat.sprite.image.complete && cat.sprite.image.naturalWidth !== 0) {
-            const bleedOffset = 0.5; // Keep for cats if they look fine
+            const bleedOffset = 0.5;
             const sx = bleedOffset;
             const sy = cat.currentFrame * cat.sprite.height + bleedOffset;
             const sWidth = cat.sprite.width - (2 * bleedOffset);
@@ -1264,35 +1238,6 @@ function drawHealthBar() {
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 1;
     ctx.strokeRect(barX, barY, barWidth, barHeight);
-}
-
-/**
- * Draws the visual slash effects for Cat Claws.
- */
-function drawSlashes() {
-    if (!ctx) return;
-    for (const slash of slashes) {
-        ctx.globalAlpha = slash.alpha;
-        ctx.strokeStyle = `rgba(255, 255, 255, ${slash.alpha})`; // White slashes
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-
-        // Draw multiple small lines to simulate a slash effect
-        for (let i = 0; i < 3; i++) {
-            const angle = Math.random() * Math.PI * 2; // Random angle
-            const length = 10 + Math.random() * 10; // Random length
-            const startX = slash.x + Math.cos(angle) * (slash.lifespan / 5); // Move slightly as it fades
-            const startY = slash.y + Math.sin(angle) * (slash.lifespan / 5);
-            const endX = startX + Math.cos(angle + Math.PI / 4) * length;
-            const endY = startY + Math.sin(angle + Math.PI / 4) * length;
-
-            ctx.beginPath();
-            ctx.moveTo(startX, startY);
-            ctx.lineTo(endX, endY);
-            ctx.stroke();
-        }
-        ctx.globalAlpha = 1; // Reset global alpha
-    }
 }
 
 /**
