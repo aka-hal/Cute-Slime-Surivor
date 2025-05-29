@@ -1,5 +1,5 @@
 // script.js
-// This script contains the core game logic for Slime Survivor, now with a store.
+// This script contains the core game logic for Slime Survivor, now with a store and Twin Claw upgrade.
 
 // --- Global Variables ---
 let canvas;
@@ -27,13 +27,21 @@ let storePanel;
 let totalCatsCaughtDisplay; // Display for total cats in the store
 let buyCatClawsButton;
 let catClawsStatus;
+// NEW: Twin Claw store elements
+let twinClawItem; // The div container for Twin Claw
+let buyTwinClawButton;
+let twinClawStatus;
 
 // Upgrade variables
 let catClawsOwned = false;
 let catClawsCooldown = 0;
-const CAT_CLAWS_COOLDOWN_DURATION = 60; // 1 second at 60 FPS
+const CAT_CLAWS_COOLDOWN_DURATION = 60; // 1 second at 60 FPS (using 120FPS for game, so half that if logic is faster)
 const CAT_CLAWS_RANGE = 70; // Range of Cat Claws attack from player center
 const CAT_CLAWS_COST = 10;
+// NEW: Twin Claw variables
+let twinClawOwned = false;
+const TWIN_CLAW_COST = 20;
+
 
 // Visual effects arrays
 let slashes = []; // For Cat Claws visual effect
@@ -155,15 +163,21 @@ window.onload = function() {
     buyCatClawsButton = document.getElementById('buyCatClawsButton');
     catClawsStatus = document.getElementById('catClawsStatus');
     closeStoreButton = document.getElementById('closeStoreButton');
+    // NEW: Get Twin Claw store elements
+    twinClawItem = document.getElementById('twinClawItem');
+    buyTwinClawButton = document.getElementById('buyTwinClawButton');
+    twinClawStatus = document.getElementById('twinClawStatus');
+
 
     // Get audio element
     gameMusic = document.getElementById('gameMusic');
 
     // Check if all necessary UI elements are found
     if (!scoreDisplay || !healthDisplay || !messageBox || !messageTextSpan || !newGameButton || !timerDisplay ||
-        !storeButton || !storePanel || !totalCatsCaughtDisplay || !buyCatClawsButton || !catClawsStatus || !closeStoreButton || !gameMusic || !musicToggleButton) {
+        !storeButton || !storePanel || !totalCatsCaughtDisplay || !buyCatClawsButton || !catClawsStatus || !closeStoreButton || !gameMusic || !musicToggleButton ||
+        !twinClawItem || !buyTwinClawButton || !twinClawStatus) { // NEW: Check Twin Claw elements
         console.error("ERROR: One or more UI display elements or audio element not found! Check HTML IDs.");
-        console.log("Missing elements check:", {scoreDisplay, healthDisplay, messageBox, messageTextSpan, newGameButton, timerDisplay, musicToggleButton, storeButton, storePanel, totalCatsCaughtDisplay, buyCatClawsButton, catClawsStatus, closeStoreButton, gameMusic});
+        console.log("Missing elements check:", {scoreDisplay, healthDisplay, messageBox, messageTextSpan, newGameButton, timerDisplay, musicToggleButton, storeButton, storePanel, totalCatsCaughtDisplay, buyCatClawsButton, catClawsStatus, closeStoreButton, gameMusic, twinClawItem, buyTwinClawButton, twinClawStatus});
     } else {
         console.log("UI elements and audio obtained! gameMusic object:", gameMusic);
     }
@@ -180,6 +194,11 @@ window.onload = function() {
     if (buyCatClawsButton) {
         buyCatClawsButton.addEventListener('click', buyCatClaws);
         console.log("Buy Cat Claws button event listener added.");
+    }
+    // NEW: Add Twin Claw buy button listener
+    if (buyTwinClawButton) {
+        buyTwinClawButton.addEventListener('click', buyTwinClaw);
+        console.log("Buy Twin Claw button event listener added.");
     }
     if (closeStoreButton) {
         closeStoreButton.addEventListener('click', toggleStore);
@@ -205,6 +224,7 @@ window.onload = function() {
     }
     if (totalCatsCaughtDisplay) totalCatsCaughtDisplay.textContent = totalCatsCaught; // Initialize total cats display
     updateCatClawsUI(); // Update Cat Claws status initially
+    updateTwinClawUI(); // NEW: Update Twin Claw status initially
     console.log(`Initial score: ${score}, Initial health: ${player.health}, Total cats: ${totalCatsCaught}`);
 
     // Ensure buttons are initially visible before any game logic hides them
@@ -334,20 +354,25 @@ function resetGame() {
     player.invulnerabilityTimer = 0;
     catClawsCooldown = 0; // Reset cooldown for new game
 
+    // Ensure upgrade states are reset correctly if the game fully resets (e.g., from a new game button after a refresh)
+    // For a full game reset (like from a browser refresh or if we want upgrades to be one-time buys)
+    // if a hard reset of ALL upgrades is desired on "New Game", uncomment these:
+    // catClawsOwned = false;
+    // twinClawOwned = false;
+
     // Reset player position
     player.x = canvas.width / 2;
     player.y = canvas.height / 2;
 
-    // Only reset player sprite to default if Cat Claws was NOT owned
-    if (!catClawsOwned) { // Changed condition to check if Cat Claws is NOT owned
+    // Reset player sprite to default if Cat Claws is not owned, otherwise use Cat Claws sprite.
+    // This maintains the correct sprite across resets if the upgrade is persistent.
+    if (!catClawsOwned) {
         player.sprite.image.src = 'https://i.imgur.com/ShxaI1U.png';
         player.sprite.frames = 9;
         player.sprite.height = 32;
         player.sprite.currentFrame = 0;
         console.log("resetGame: Player sprite reset to original.");
     } else {
-        // If Cat Claws is owned, ensure the current sprite is the cat claws one
-        // This handles cases where the game might restart without going through the store again
         player.sprite.image.src = player.catClawsSprite.src;
         player.sprite.frames = player.catClawsSprite.frames;
         player.sprite.height = player.catClawsSprite.height;
@@ -359,6 +384,9 @@ function resetGame() {
     // Update UI
     if (scoreDisplay) scoreDisplay.textContent = score;
     // totalCatsCaughtDisplay is updated in buyCatClaws or gameOver, no need to reset here
+    updateCatClawsUI(); // Update UI for Cat Claws
+    updateTwinClawUI(); // NEW: Update UI for Twin Claw
+
 
     // Ensure game buttons are visible
     if (newGameButton) newGameButton.style.display = 'block';
@@ -384,6 +412,9 @@ function toggleStore() {
             if (totalCatsCaughtDisplay) {
                 totalCatsCaughtDisplay.textContent = totalCatsCaught; // Update total cats when opening store
             }
+            updateCatClawsUI(); // Update Cat Claws status when store opens
+            updateTwinClawUI(); // NEW: Update Twin Claw status when store opens
+
             // Pause game when store is open
             gameRunning = false;
             console.log("toggleStore: Store opened. gameRunning set to FALSE.");
@@ -436,6 +467,7 @@ function buyCatClaws() {
         catClawsOwned = true;
         if (totalCatsCaughtDisplay) totalCatsCaughtDisplay.textContent = totalCatsCaught;
         updateCatClawsUI();
+        updateTwinClawUI(); // NEW: Update Twin Claw UI visibility after buying Cat Claws
         showMessage("Cat Claws purchased!", 1500);
         console.log("Cat Claws purchased. Total cats remaining:", totalCatsCaught);
 
@@ -449,6 +481,33 @@ function buyCatClaws() {
     } else {
         showMessage(`Not enough cats! Need ${CAT_CLAWS_COST - totalCatsCaught} more.`, 1500);
         console.log("Failed to purchase Cat Claws. Not enough cats.");
+    }
+}
+
+/**
+ * NEW: Handles the purchase of Twin Claw upgrade.
+ */
+function buyTwinClaw() {
+    if (twinClawOwned) {
+        showMessage("You already own Twin Claw!", 1500);
+        return;
+    }
+
+    if (!catClawsOwned) {
+        showMessage("You need Cat Claws first!", 1500);
+        return;
+    }
+
+    if (totalCatsCaught >= TWIN_CLAW_COST) {
+        totalCatsCaught -= TWIN_CLAW_COST;
+        twinClawOwned = true;
+        if (totalCatsCaughtDisplay) totalCatsCaughtDisplay.textContent = totalCatsCaught;
+        updateTwinClawUI(); // Update UI for Twin Claw
+        showMessage("Twin Claw purchased! Your claws now strike twice!", 2000);
+        console.log("Twin Claw purchased. Total cats remaining:", totalCatsCaught);
+    } else {
+        showMessage(`Not enough cats! Need ${TWIN_CLAW_COST - totalCatsCaught} more.`, 1500);
+        console.log("Failed to purchase Twin Claw. Not enough cats.");
     }
 }
 
@@ -469,6 +528,32 @@ function updateCatClawsUI() {
             buyCatClawsButton.textContent = "Buy";
             buyCatClawsButton.style.backgroundColor = '#4CAF50'; // Green
             buyCatClawsButton.style.cursor = 'pointer';
+        }
+    }
+}
+
+/**
+ * NEW: Updates the UI display for the Twin Claw upgrade.
+ */
+function updateTwinClawUI() {
+    if (twinClawItem && buyTwinClawButton && twinClawStatus) {
+        if (!catClawsOwned) {
+            twinClawItem.style.display = 'none'; // Hide Twin Claw if Cat Claws not owned
+        } else {
+            twinClawItem.style.display = 'block'; // Show Twin Claw if Cat Claws owned
+            if (twinClawOwned) {
+                twinClawStatus.textContent = "Owned";
+                buyTwinClawButton.disabled = true;
+                buyTwinClawButton.textContent = "Owned";
+                buyTwinClawButton.style.backgroundColor = '#6B7280';
+                buyTwinClawButton.style.cursor = 'not-allowed';
+            } else {
+                twinClawStatus.textContent = `Cost: ${TWIN_CLAW_COST} Cats`;
+                buyTwinClawButton.disabled = false;
+                buyTwinClawButton.textContent = "Buy";
+                buyTwinClawButton.style.backgroundColor = '#4CAF50';
+                buyTwinClawButton.style.cursor = 'pointer';
+            }
         }
     }
 }
@@ -657,9 +742,9 @@ function update() {
     updatePlayerAnimation(); // Re-enabled player animation update
     updateSlashes(); // New: Update slashes for visual effect
 
-    // New: Handle Cat Claws attack
+    // Handle Cat Claws attack (now potentially Twin Claw)
     if (catClawsOwned && catClawsCooldown === 0) {
-        checkCatClawsAttack();
+        checkCatClawsAttack(); // This function now handles single/twin attacks
     }
     if (catClawsCooldown > 0) {
         catClawsCooldown--;
@@ -859,37 +944,62 @@ function checkCollisions() {
 
 /**
  * Checks for and applies Cat Claws attack to nearby enemies.
+ * Now handles single or twin attacks based on twinClawOwned.
  */
 function checkCatClawsAttack() {
-    let attackedThisFrame = false;
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        const cat = enemies[i];
-        // If the cat is trapped, it cannot be hit by Cat Claws
-        if (cat.isTrapped) {
-            continue; // Skip this cat and move to the next one in the loop
+    if (catClawsOwned && catClawsCooldown === 0) {
+        let attacksPerformed = 0;
+        const maxAttacks = twinClawOwned ? 2 : 1; // Perform 2 attacks if Twin Claw owned, else 1
+
+        // Loop to perform multiple attacks if Twin Claw is owned
+        // We need a way to track which cats have been targeted in THIS single activation
+        // to avoid hitting the same cat twice if only one is available.
+        const targetedCats = new Set(); // Use a Set to keep track of cats targeted in this activation
+
+        for (let i = 0; i < maxAttacks; i++) {
+            let closestCat = null;
+            let minDistance = Infinity;
+
+            for (const cat of enemies) {
+                // Only consider untrapped cats that haven't been targeted yet in this multi-attack
+                if (!cat.isTrapped && !targetedCats.has(cat)) {
+                    const distance = Math.sqrt(
+                        (player.x - cat.x) ** 2 + (player.y - cat.y) ** 2
+                    );
+                    if (distance <= CAT_CLAWS_RANGE && distance < minDistance) {
+                        minDistance = distance;
+                        closestCat = cat;
+                    }
+                }
+            }
+
+            if (closestCat) {
+                // Add a slash visual effect
+                slashes.push({
+                    x: closestCat.x,
+                    y: closestCat.y,
+                    alpha: 1,
+                    lifespan: 30
+                });
+                
+                targetedCats.add(closestCat); // Mark this cat as targeted for this wave
+                attacksPerformed++;
+            }
+
+            if (attacksPerformed >= maxAttacks) break; // Stop if max attacks performed
         }
 
-        const distance = Math.sqrt(
-            (player.x - cat.x) ** 2 + (player.y - cat.y) ** 2
-        );
-
-        if (distance <= CAT_CLAWS_RANGE) {
-            // Add a slash visual effect
-            slashes.push({
-                x: cat.x,
-                y: cat.y,
-                alpha: 1,
-                lifespan: 30 // Shorter lifespan for slashes
-            });
-            
-            // Remove the cat, but DO NOT increment score or totalCatsCaught
-            enemies.splice(i, 1);
-            attackedThisFrame = true;
-            break; // Only attack one cat per second for simplicity
+        // Now remove all cats that were successfully targeted and collected in this batch
+        // We iterate enemies backwards because we'll be splicing elements
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            if (targetedCats.has(enemies[i])) {
+                enemies.splice(i, 1);
+            }
         }
-    }
-    if (attackedThisFrame) {
-        catClawsCooldown = CAT_CLAWS_COOLDOWN_DURATION; // Reset cooldown
+
+        if (attacksPerformed > 0) {
+            catClawsCooldown = CAT_CLAWS_COOLDOWN_DURATION; // Apply cooldown after successful attack(s)
+        }
     }
 }
 
