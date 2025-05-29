@@ -130,7 +130,7 @@ const keysPressed = {};
 // Music variables
 let gameMusic;
 let musicToggleButton;
-let isMusicPlaying = false;
+let isMusicPlaying = false; // This flag now solely represents the user's preference for music
 
 // --- Initialization ---
 
@@ -687,25 +687,27 @@ function startGame() {
     if (musicToggleButton) {
         musicToggleButton.style.display = 'block'; // Ensure music button is visible during game
     }
-    // Attempt to play music when game starts (unmuted)
-    if (gameMusic && !isMusicPlaying) {
+    // Attempt to play music if user preference is on (isMusicPlaying is true)
+    if (gameMusic && isMusicPlaying) { // Changed condition
         gameMusic.muted = false;
         gameMusic.volume = 0.5; // Ensure volume is set
-        console.log("startGame: Attempting to play music automatically.");
+        console.log("startGame: Attempting to play music based on user preference.");
         gameMusic.play().then(() => {
-            isMusicPlaying = true;
-            musicToggleButton.textContent = "Pause Music";
-            console.log("Music started on game start automatically (if allowed).");
+            console.log("Music started on game start successfully.");
         }).catch(error => {
-            console.warn("Music autoplay prevented on game start:", error);
-            // Specifically check for NotAllowedError to provide tailored message
+            console.error("Error playing music on game start:", error);
             if (error.name === "NotAllowedError") {
                 showMessage("Music autoplay blocked. Click 'Toggle Music' to enable.", 3000);
             } else {
                 showMessage("Music playback failed. See console for details.", 3000);
             }
         });
+    } else if (gameMusic && !isMusicPlaying) { // If music is off by user preference, ensure it's paused
+        gameMusic.pause();
+        gameMusic.muted = true;
+        console.log("startGame: Music is off by user preference, ensuring it's paused.");
     }
+
 
     gameLoop();
     console.log("gameLoop: Requesting next animation frame.");
@@ -974,7 +976,7 @@ function checkCatClawsAttack() {
                 // Only consider untrapped cats that haven't been targeted yet in this multi-attack
                 if (!cat.isTrapped && !targetedCats.has(cat)) {
                     const distance = Math.sqrt(
-                        (player.x - cat.x) ** 2 + (player.y - cat.y) ** 2
+                        (player.x - cat.x) ** 2 + (cat.y - cat.y) ** 2
                     );
                     if (distance <= CAT_CLAWS_RANGE && distance < minDistance) {
                         minDistance = distance;
@@ -1055,11 +1057,9 @@ function gameOver() {
     if (musicToggleButton) {
         musicToggleButton.style.display = 'block'; // Show music button when game is over
     }
-    // Pause music on game over
-    if (gameMusic && isMusicPlaying) {
+    // Pause music on game over, but don't change user preference flag
+    if (gameMusic) { // Removed isMusicPlaying check here
         gameMusic.pause();
-        isMusicPlaying = false;
-        musicToggleButton.textContent = "Play Music";
         console.log("Music paused on game over.");
     }
 }
@@ -1088,11 +1088,9 @@ function winGame() {
     if (musicToggleButton) {
         musicToggleButton.style.display = 'block'; // Show music button when game is won
     }
-    // Pause music on game win
-    if (gameMusic && isMusicPlaying) {
+    // Pause music on game win, but don't change user preference flag
+    if (gameMusic) { // Removed isMusicPlaying check here
         gameMusic.pause();
-        isMusicPlaying = false;
-        musicToggleButton.textContent = "Play Music";
         console.log("Music paused on game win.");
     }
 }
@@ -1104,7 +1102,7 @@ function winGame() {
 function updatePlayerAnimation() {
     player.animationTimer++;
     if (player.animationTimer >= player.sprite.frameRate) {
-        player.sprite.currentFrame = (player.sprite.currentFrame + 1) % player.sprite.frames;
+        player.sprite.currentFrame = (player.currentFrame + 1) % player.sprite.frames;
         player.animationTimer = 0;
     }
 }
