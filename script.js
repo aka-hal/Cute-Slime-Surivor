@@ -393,6 +393,29 @@ function resetGame() {
     if (storeButton) storeButton.style.display = 'block';
     if (musicToggleButton) musicToggleButton.style.display = 'block';
 
+    // Music handling for new game:
+    if (gameMusic && isMusicPlaying) { // If music was playing and user preference is ON
+        gameMusic.currentTime = 0; // Rewind to start
+        gameMusic.muted = false; // Ensure unmuted
+        gameMusic.volume = 0.5; // Set volume
+        gameMusic.play().then(() => {
+            console.log("Music resumed successfully for new game.");
+            musicToggleButton.textContent = "Pause Music"; // Ensure button text is correct
+        }).catch(error => {
+            console.error("Error resuming music for new game:", error);
+            if (error.name === "NotAllowedError") {
+                showMessage("Music could not resume automatically. Click 'Toggle Music'.", 3000);
+            } else {
+                showMessage("Music resume failed. See console for details.", 3000);
+            }
+        });
+    } else if (gameMusic && !isMusicPlaying) { // If user preference is OFF
+        gameMusic.pause();
+        gameMusic.muted = true;
+        musicToggleButton.textContent = "Play Music"; // Ensure button text is correct
+        console.log("Music remains off as per user preference.");
+    }
+
 
     // Restart the game loop
     startGame();
@@ -687,27 +710,7 @@ function startGame() {
     if (musicToggleButton) {
         musicToggleButton.style.display = 'block'; // Ensure music button is visible during game
     }
-    // Attempt to play music if user preference is on (isMusicPlaying is true)
-    if (gameMusic && isMusicPlaying) { // Changed condition
-        gameMusic.muted = false;
-        gameMusic.volume = 0.5; // Ensure volume is set
-        console.log("startGame: Attempting to play music based on user preference.");
-        gameMusic.play().then(() => {
-            console.log("Music started on game start successfully.");
-        }).catch(error => {
-            console.error("Error playing music on game start:", error);
-            if (error.name === "NotAllowedError") {
-                showMessage("Music autoplay blocked. Click 'Toggle Music' to enable.", 3000);
-            } else {
-                showMessage("Music playback failed. See console for details.", 3000);
-            }
-        });
-    } else if (gameMusic && !isMusicPlaying) { // If music is off by user preference, ensure it's paused
-        gameMusic.pause();
-        gameMusic.muted = true;
-        console.log("startGame: Music is off by user preference, ensuring it's paused.");
-    }
-
+    // Music autoplay logic removed from here, now handled in resetGame or toggleMusic.
 
     gameLoop();
     console.log("gameLoop: Requesting next animation frame.");
@@ -976,7 +979,7 @@ function checkCatClawsAttack() {
                 // Only consider untrapped cats that haven't been targeted yet in this multi-attack
                 if (!cat.isTrapped && !targetedCats.has(cat)) {
                     const distance = Math.sqrt(
-                        (player.x - cat.x) ** 2 + (cat.y - cat.y) ** 2
+                        (player.x - cat.x) ** 2 + (player.y - cat.y) ** 2
                     );
                     if (distance <= CAT_CLAWS_RANGE && distance < minDistance) {
                         minDistance = distance;
@@ -1058,7 +1061,7 @@ function gameOver() {
         musicToggleButton.style.display = 'block'; // Show music button when game is over
     }
     // Pause music on game over, but don't change user preference flag
-    if (gameMusic) { // Removed isMusicPlaying check here
+    if (gameMusic) {
         gameMusic.pause();
         console.log("Music paused on game over.");
     }
@@ -1089,7 +1092,7 @@ function winGame() {
         musicToggleButton.style.display = 'block'; // Show music button when game is won
     }
     // Pause music on game win, but don't change user preference flag
-    if (gameMusic) { // Removed isMusicPlaying check here
+    if (gameMusic) {
         gameMusic.pause();
         console.log("Music paused on game win.");
     }
@@ -1102,7 +1105,7 @@ function winGame() {
 function updatePlayerAnimation() {
     player.animationTimer++;
     if (player.animationTimer >= player.sprite.frameRate) {
-        player.sprite.currentFrame = (player.currentFrame + 1) % player.sprite.frames;
+        player.sprite.currentFrame = (player.sprite.currentFrame + 1) % player.sprite.frames;
         player.animationTimer = 0;
     }
 }
