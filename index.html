@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slime Survivor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="text-3xl font-bold mb-4 text-white">Slime Survivor</h1>
+        <canvas id="gameCanvas"></canvas>
+        <div class="controls">
+            <p>Score: <span id="scoreDisplay">0</span> | Health: <span id="healthDisplay">10</span></p> <p id="timerDisplay">Time: 03:00</p>
+            <p>Use WASD or Arrow Keys to Move!</p>
+            <div class="button-group">
+                <button id="newGameButton" class="game-button">New Game</button>
+                <button id="storeButton" class="game-button">Store</button>
+                <button id="musicToggleButton" class="game-button">Toggle Music</button>
+            </div>
+        </div>
+
+        <div id="messageBox" class="message-box hidden">
+            <span id="messageText"></span>
+        </div>
+
+        <div id="storePanel" class="store-panel hidden">
+            <h2>Slime Store</h2>
+            <p>Total Cats Caught: <span id="totalCatsCaughtDisplay">0</span></p>
+            <div class="store-item">
+                <h3>Cat Claws</h3>
+                <p id="catClawsStatus">Cost: 10 Cats</p>
+                <button id="buyCatClawsButton" class="buy-button">Buy</button>
+            </div>
+            <button id="closeStoreButton" class="game-button close-button">Close Store</button>
+        </div>
+    </div>
+
+    <audio id="gameMusic" loop muted>
+        <source src="https://www.bensound.com/bensound-music/bensound-adventure.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <script src="script.js"></script>
+</body>
+</html>
