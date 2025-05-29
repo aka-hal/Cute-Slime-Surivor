@@ -398,6 +398,7 @@ function resetGame() {
         gameMusic.currentTime = 0; // Rewind to start
         gameMusic.muted = false; // Ensure unmuted
         gameMusic.volume = 0.5; // Set volume
+        gameMusic.load(); // Explicitly load to reset audio state
         gameMusic.play().then(() => {
             console.log("Music resumed successfully for new game.");
             musicToggleButton.textContent = "Pause Music"; // Ensure button text is correct
