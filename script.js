@@ -609,13 +609,13 @@ function resizeCanvas() {
     const oldCanvasWidth = canvas.width;
     const oldCanvasHeight = canvas.height;
 
-    // Let CSS handle the visual sizing (width: 100%, flex-grow, aspect-ratio, max-height)
-    // Then, set the canvas's internal drawing buffer size to match its *rendered* size.
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    // Set the canvas's internal drawing buffer size to match its *rendered* size.
+    // Use clientWidth/clientHeight for the content area, which is what we want to draw on.
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
 
-    console.log(`Canvas drawing buffer set to: ${canvas.width}x${canvas.height} (matching rendered size)`);
-    console.log(`Canvas CSS style (offsetWidth x offsetHeight): ${canvas.offsetWidth}x${canvas.offsetHeight}`);
+    console.log(`Canvas drawing buffer set to: ${canvas.width}x${canvas.height} (matching clientWidth x clientHeight)`);
+    console.log(`Canvas client dimensions: ${canvas.clientWidth}x${canvas.clientHeight}`);
 
 
     // Adjust player position if canvas size changed
