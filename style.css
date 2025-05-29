@@ -20,12 +20,12 @@ body {
     width: 98vw; /* Make container almost full viewport width */
     height: 98vh; /* Make container almost full viewport height */
     box-sizing: border-box;
-    justify-content: space-between; /* Distribute space between items */
+    /* Removed justify-content: space-between; to allow canvas to grow more naturally */
 }
 .top-ui-container {
     width: 100%;
     display: flex;
-    flex-direction: column; /* Stack controls, score, and store button vertically */
+    flex-direction: column; /* Stack controls, score, and music button vertically */
     align-items: center;
     margin-bottom: 1rem;
 }
@@ -34,13 +34,13 @@ canvas {
     display: block;
     border-radius: 0.75rem; /* Rounded corners for canvas */
     width: 100%;
-    flex-grow: 1;
-    flex-shrink: 1;
+    flex-grow: 1; /* Allow canvas to grow and take available vertical space */
+    flex-shrink: 1; /* Allow canvas to shrink if needed */
     flex-basis: 0;
     margin-bottom: 0;
     object-fit: contain;
     aspect-ratio: 16 / 9;
-    max-height: 100%; /* Crucial: Ensure canvas does not overflow vertically */
+    max-height: 100%; /* Crucial: Ensure canvas does not exceed its container's height */
 }
 .controls {
     font-size: 1.25rem;
@@ -54,7 +54,7 @@ canvas {
     font-weight: bold;
     color: #a0aec0;
     text-align: center;
-    margin-bottom: 0.5rem; /* Space below score and above store button */
+    margin-bottom: 0.5rem; /* Space below score and above music button */
     display: flex; /* Use flexbox for alignment */
     align-items: center; /* Vertically align items */
     justify-content: center; /* Center content horizontally */
@@ -66,20 +66,25 @@ canvas {
     border-radius: 0.5rem;
     font-size: 1.1rem;
     text-align: center;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1000;
-    transition: opacity 0.5s ease-in-out;
-    display: none; /* Initially hidden */
-    flex-direction: column; /* Arrange content vertically */
-    gap: 10px; /* Space between message and button */
-    align-items: center;
+    /* Positioning for visibility */
+    position: fixed; /* Position relative to the viewport */
+    top: 50%; /* Center vertically */
+    left: 50%; /* Center horizontally */
+    transform: translate(-50%, -50%); /* Adjust for element's own size */
+    z-index: 1000; /* Ensure it's on top of other elements */
+    transition: opacity 0.5s ease-in-out; /* Keep transition for smooth fade */
+    /* Ensure it's initially hidden by default, will be toggled by JS */
+    display: none; /* Changed from opacity: 0 */
 }
-.message-box.visible {
-    display: flex;
-    opacity: 1;
+.message-box.visible { /* New class to make it visible */
+    display: flex; /* Changed to flex to arrange content easily */
+    opacity: 1; /* Ensure full opacity when visible */
+}
+.game-over-buttons { /* New: Styles for the button container inside messageBox */
+    display: none; /* Hidden by default, will be set to flex by JS */
+    gap: 15px; /* Space between buttons */
+    margin-top: 10px; /* Space above buttons */
+    justify-content: center; /* Center the buttons horizontally */
 }
 .new-game-button, .store-button, .buy-button, .close-button, .music-toggle-button { /* Combined button styles */
     background-color: #4CAF50; /* Green */
@@ -96,11 +101,6 @@ canvas {
 }
 .new-game-button:hover, .store-button:hover, .buy-button:hover, .close-button:hover, .music-toggle-button:hover {
     background-color: #45a049;
-}
-
-/* Specific style for the store button to place it at the top */
-.store-button {
-    margin-top: 1rem; /* Add some space below the score/controls */
 }
 
 /* Music Toggle Button specific style */
