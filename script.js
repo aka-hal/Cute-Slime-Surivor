@@ -132,6 +132,9 @@ let gameMusic;
 let musicToggleButton;
 let isMusicPlaying = false; // This flag now solely represents the user's preference for music
 
+// New global variable for the game over buttons container
+let gameOverButtons;
+
 // --- Initialization ---
 
 window.onload = function() {
@@ -168,6 +171,9 @@ window.onload = function() {
     buyTwinClawButton = document.getElementById('buyTwinClawButton');
     twinClawStatus = document.getElementById('twinClawStatus');
 
+    // Get the game-over-buttons container
+    gameOverButtons = document.querySelector('#messageBox .game-over-buttons');
+
 
     // Get audio element
     gameMusic = document.getElementById('gameMusic');
@@ -175,9 +181,9 @@ window.onload = function() {
     // Check if all necessary UI elements are found
     if (!scoreDisplay || !healthDisplay || !messageBox || !messageTextSpan || !newGameButton || !timerDisplay ||
         !storeButton || !storePanel || !totalCatsCaughtDisplay || !buyCatClawsButton || !catClawsStatus || !closeStoreButton || !gameMusic || !musicToggleButton ||
-        !twinClawItem || !buyTwinClawButton || !twinClawStatus) { // NEW: Check Twin Claw elements
+        !twinClawItem || !buyTwinClawButton || !twinClawStatus || !gameOverButtons) { // NEW: Check gameOverButtons
         console.error("ERROR: One or more UI display elements or audio element not found! Check HTML IDs.");
-        console.log("Missing elements check:", {scoreDisplay, healthDisplay, messageBox, messageTextSpan, newGameButton, timerDisplay, musicToggleButton, storeButton, storePanel, totalCatsCaughtDisplay, buyCatClawsButton, catClawsStatus, closeStoreButton, gameMusic, twinClawItem, buyTwinClawButton, twinClawStatus});
+        console.log("Missing elements check:", {scoreDisplay, healthDisplay, messageBox, messageTextSpan, newGameButton, timerDisplay, musicToggleButton, storeButton, storePanel, totalCatsCaughtDisplay, buyCatClawsButton, catClawsStatus, closeStoreButton, gameMusic, twinClawItem, buyTwinClawButton, twinClawStatus, gameOverButtons});
     } else {
         console.log("UI elements and audio obtained! gameMusic object:", gameMusic);
     }
@@ -228,12 +234,13 @@ window.onload = function() {
     console.log(`Initial score: ${score}, Initial health: ${player.health}, Total cats: ${totalCatsCaught}`);
 
     // Ensure buttons are initially visible before any game logic hides them
+    // These buttons are now controlled by the messageBox/game state
     if (newGameButton) {
-        newGameButton.style.display = 'block';
+        newGameButton.style.display = 'block'; // Ensure it's block initially for game over state
         console.log("window.onload: New Game button initially set to display: block.");
     }
     if (storeButton) {
-        storeButton.style.display = 'block';
+        storeButton.style.display = 'block'; // Ensure it's block initially for game over state
         console.log("window.onload: Store button initially set to display: block.");
     }
     if (musicToggleButton) {
@@ -280,8 +287,8 @@ window.onload = function() {
     window.addEventListener('keyup', handleKeyUp);
     console.log("Event listeners added.");
 
-    startGame();
-    showMessage("Welcome to Slime Survivor!", 2000);
+    startGame(); // This will hide the buttons as the game starts
+    showMessage("Welcome to Slime Survivor!", 2000); // This will show a temporary message without buttons
     console.log("Game initialization complete!");
 };
 
@@ -328,14 +335,17 @@ function toggleMusic() {
  */
 function resetGame() {
     console.log("resetGame: FUNCTION CALLED. Starting a new game round.");
-    // Hide the message box
+    // Hide the message box and its buttons
     if (messageBox) {
         messageBox.classList.remove('visible');
         messageBox.classList.add('hidden');
-        if (messageTimeoutId) {
-            clearTimeout(messageTimeoutId);
-            messageTimeoutId = null;
-        }
+    }
+    if (gameOverButtons) {
+        gameOverButtons.style.display = 'none';
+    }
+    if (messageTimeoutId) {
+        clearTimeout(messageTimeoutId);
+        messageTimeoutId = null;
     }
 
     // Reset game state variables for the new round
@@ -354,18 +364,11 @@ function resetGame() {
     player.invulnerabilityTimer = 0;
     catClawsCooldown = 0; // Reset cooldown for new game
 
-    // Ensure upgrade states are reset correctly if the game fully resets (e.g., from a new game button after a refresh)
-    // For a full game reset (like from a browser refresh or if we want upgrades to be one-time buys)
-    // if a hard reset of ALL upgrades is desired on "New Game", uncomment these:
-    // catClawsOwned = false;
-    // twinClawOwned = false;
-
     // Reset player position
     player.x = canvas.width / 2;
     player.y = canvas.height / 2;
 
     // Reset player sprite to default if Cat Claws is not owned, otherwise use Cat Claws sprite.
-    // This maintains the correct sprite across resets if the upgrade is persistent.
     if (!catClawsOwned) {
         player.sprite.image.src = 'https://i.imgur.com/ShxaI1U.png';
         player.sprite.frames = 9;
@@ -380,18 +383,10 @@ function resetGame() {
         console.log("resetGame: Player sprite remains Cat Claws version.");
     }
 
-
     // Update UI
     if (scoreDisplay) scoreDisplay.textContent = score;
-    // totalCatsCaughtDisplay is updated in buyCatClaws or gameOver, no need to reset here
     updateCatClawsUI(); // Update UI for Cat Claws
     updateTwinClawUI(); // NEW: Update UI for Twin Claw
-
-
-    // Ensure game buttons are visible
-    if (newGameButton) newGameButton.style.display = 'block';
-    if (storeButton) storeButton.style.display = 'block';
-    if (musicToggleButton) musicToggleButton.style.display = 'block';
 
     // Music handling for new game:
     if (gameMusic && isMusicPlaying) { // If music was playing and user preference is ON
@@ -417,10 +412,9 @@ function resetGame() {
         console.log("Music remains off as per user preference.");
     }
 
-
     // Restart the game loop
-    startGame();
-    showMessage("New Game! Survive the cats!", 2000);
+    startGame(); // This will handle hiding the main UI buttons.
+    showMessage("New Game! Survive the cats!", 2000); // This will show a temporary message without buttons
     draw(); // Initial draw for the new game state
 }
 
@@ -442,34 +436,46 @@ function toggleStore() {
             // Pause game when store is open
             gameRunning = false;
             console.log("toggleStore: Store opened. gameRunning set to FALSE.");
-            // Hide game over message if it's visible when store opens
+            // Hide the message box (and its buttons) when store opens
             if (messageBox) {
                 messageBox.classList.remove('visible');
                 messageBox.classList.add('hidden');
             }
-            // Hide all game control buttons when store is open
-            if (newGameButton) newGameButton.style.display = 'none';
-            if (storeButton) storeButton.style.display = 'none';
-            if (musicToggleButton) musicToggleButton.style.display = 'none';
+            // Hide the music toggle button as well
+            if (musicToggleButton) {
+                musicToggleButton.style.display = 'none';
+            }
         } else { // Closing store
             storePanel.classList.remove('visible');
             storePanel.classList.add('hidden');
             // Resume game when store is closed, only if player is alive
             console.log("toggleStore: Closing store. Player health on close:", player.health); // Added log
-            if (player.health > 0) {
+            if (player.health > 0) { // Game is still running (or was paused)
                 gameRunning = true;
                 console.log("toggleStore: Store closed. Player alive. gameRunning set to TRUE.");
                 gameLoop(); // Restart the game loop
-                // When game resumes, ensure game buttons are visible
-                if (newGameButton) newGameButton.style.display = 'block';
-                if (storeButton) storeButton.style.display = 'block';
-                if (musicToggleButton) musicToggleButton.style.display = 'block';
+                // Ensure music button is visible when game resumes
+                if (musicToggleButton) {
+                    musicToggleButton.style.display = 'block';
+                }
+                // Ensure messageBox and its buttons are hidden if game is running
+                if (messageBox) {
+                    messageBox.classList.remove('visible');
+                    messageBox.classList.add('hidden');
+                }
             } else { // Game is over (player.health <= 0)
-                // If game is over, show New Game and Store buttons
+                // If game is over, ensure message box and its buttons are visible
                 console.log("toggleStore: Game is over, showing New Game and Store buttons.");
-                if (newGameButton) newGameButton.style.display = 'block';
-                if (storeButton) storeButton.style.display = 'block';
-                if (musicToggleButton) musicToggleButton.style.display = 'block';
+                if (messageBox) {
+                    messageBox.classList.add('visible');
+                    messageBox.classList.remove('hidden');
+                }
+                if (gameOverButtons) {
+                    gameOverButtons.style.display = 'flex'; // Show buttons
+                }
+                if (musicToggleButton) {
+                    musicToggleButton.style.display = 'block';
+                }
             }
             console.log("toggleStore: Store closed. Final button states: New Game:", newGameButton.style.display, "Store:", storeButton.style.display);
         }
@@ -652,7 +658,7 @@ function resizeCanvas() {
  * @param {number} duration - How long to display the message in milliseconds. If 0, it stays visible.
  */
 function showMessage(message, duration) {
-    if (messageBox && messageTextSpan) {
+    if (messageBox && messageTextSpan && gameOverButtons) {
         if (messageTimeoutId) {
             clearTimeout(messageTimeoutId);
             messageTimeoutId = null;
@@ -660,26 +666,26 @@ function showMessage(message, duration) {
         }
 
         console.log(`showMessage: Attempting to show message: "${message}" for ${duration}ms.`);
-        messageTextSpan.textContent = message; // Update the text content of the span
-        
+        messageTextSpan.textContent = message; // Update only the text span
         messageBox.classList.add('visible');
         messageBox.classList.remove('hidden');
-        
-        // Removed button visibility logic from here. Buttons are now controlled by startGame/gameOver/toggleStore.
+
+        if (duration === 0) { // This is a persistent message (like game over)
+            gameOverButtons.style.display = 'flex'; // Show buttons (using flex for layout)
+        } else { // Temporary message
+            gameOverButtons.style.display = 'none'; // Hide buttons
+        }
 
         if (duration > 0) {
             messageTimeoutId = setTimeout(() => {
-                console.log(`showMessage (timeout callback): Hiding message: "${message}" after ${duration}ms. Player health: ${player.health}.`);
                 messageBox.classList.remove('visible');
                 messageBox.classList.add('hidden');
+                gameOverButtons.style.display = 'none'; // Ensure buttons are hidden when message fades
                 messageTimeoutId = null;
-                // No button visibility logic here anymore.
             }, duration);
-        } else {
-            console.log(`showMessage: Message "${message}" will remain visible indefinitely.`);
         }
     } else {
-        console.warn(`showMessage: Attempted to show message "${message}", but messageBox or messageTextSpan element not found.`);
+        console.warn(`showMessage: One or more message box elements not found.`);
     }
 }
 
@@ -699,19 +705,18 @@ function startGame() {
     console.log("startGame: Initiating game loop. Current gameRunning:", gameRunning);
     gameRunning = true;
     console.log("startGame: gameRunning set to TRUE. Calling gameLoop().");
-    // Hide buttons when game starts
-    if (newGameButton) {
-        newGameButton.style.display = 'none';
-        console.log("startGame: Hiding New Game button.");
+    // Hide the message box and its buttons at the start of a new game
+    if (messageBox) {
+        messageBox.classList.add('hidden');
+        messageBox.classList.remove('visible');
     }
-    if (storeButton) {
-        storeButton.style.display = 'none';
-        console.log("startGame: Hiding Store button.");
+    if (gameOverButtons) {
+        gameOverButtons.style.display = 'none';
     }
+    // Music toggle button should be visible during gameplay
     if (musicToggleButton) {
-        musicToggleButton.style.display = 'block'; // Ensure music button is visible during game
+        musicToggleButton.style.display = 'block';
     }
-    // Music autoplay logic removed from here, now handled in resetGame or toggleMusic.
 
     gameLoop();
     console.log("gameLoop: Requesting next animation frame.");
@@ -746,7 +751,6 @@ function update() {
     if (gameTimer % CAT_SPAWN_INCREASE_INTERVAL === 0 && CAT_SPAWN_INTERVAL > 10) {
         CAT_SPAWN_INTERVAL = Math.max(10, CAT_SPAWN_INTERVAL - CAT_SPAWN_INCREASE_AMOUNT);
         console.log(`Cat spawn interval increased! New interval: ${CAT_SPAWN_INTERVAL}`);
-        // Removed: showMessage(`Cats are getting faster!`, 1500);
     }
 
 
@@ -1040,28 +1044,14 @@ function updateSlashes() {
 function gameOver() {
     gameRunning = false;
     console.log("gameOver: Player health is:", player.health); // Log player health at game over
-    // Clear any existing message timeout to ensure game over message remains
     if (messageTimeoutId) {
         clearTimeout(messageTimeoutId);
         messageTimeoutId = null;
-        console.log("gameOver: Cleared message timeout to display game over message.");
     }
     showMessage(`GAME OVER! You collected ${score} cats this round! Total cats ever caught: ${totalCatsCaught}. Your Slime Perished.`, 0);
     console.log("gameOver: Final Score (round):", score, "Total Cats Ever Caught:", totalCatsCaught);
 
-    // Explicitly show buttons when game is over
-    if (newGameButton) {
-        newGameButton.style.display = 'block';
-        console.log("gameOver: Showing New Game button.");
-    }
-    if (storeButton) {
-        storeButton.style.display = 'block';
-        console.log("gameOver: Showing Store button.");
-    }
-    if (musicToggleButton) {
-        musicToggleButton.style.display = 'block'; // Show music button when game is over
-    }
-    // Pause music on game over, but don't change user preference flag
+    // Pause music on game over
     if (gameMusic) {
         gameMusic.pause();
         console.log("Music paused on game over.");
@@ -1080,19 +1070,7 @@ function winGame() {
     }
     showMessage(`YOU WIN! You survived for 3 minutes and collected ${score} cats!`, 0);
     
-    // Explicitly show buttons when game is won
-    if (newGameButton) {
-        newGameButton.style.display = 'block';
-        console.log("winGame: Showing New Game button.");
-    }
-    if (storeButton) {
-        storeButton.style.display = 'block';
-        console.log("winGame: Showing Store button.");
-    }
-    if (musicToggleButton) {
-        musicToggleButton.style.display = 'block'; // Show music button when game is won
-    }
-    // Pause music on game win, but don't change user preference flag
+    // Pause music on game win
     if (gameMusic) {
         gameMusic.pause();
         console.log("Music paused on game win.");
@@ -1114,9 +1092,6 @@ function updatePlayerAnimation() {
 // --- Drawing Logic ---
 
 function draw() {
-    // Debugging: Log globalAlpha at the start of each draw frame
-    // console.log("draw(): ctx.globalAlpha at start:", ctx.globalAlpha); // Too verbose
-
     if (!ctx) {
         console.error("draw: 2D rendering context (ctx) is not available.");
         return;
@@ -1133,21 +1108,14 @@ function draw() {
 
 function drawPlayer() {
     if (!ctx) return;
-    // Debugging: Log player sprite loading status
-    // console.log("drawPlayer(): Player sprite image complete:", player.sprite.image.complete, "naturalWidth:", player.sprite.image.naturalWidth, "naturalHeight:", player.sprite.image.naturalHeight); // Too verbose
-
     // Ensure image is loaded and has valid dimensions before attempting to draw sprite
     if (player.sprite.image && player.sprite.image.complete && player.sprite.image.naturalWidth > 0 && player.sprite.image.naturalHeight > 0) {
-        // console.log("drawPlayer(): Attempting to draw sprite. Image dimensions:", player.sprite.image.naturalWidth, "x", player.sprite.image.naturalHeight); // Too verbose
-        
         // Source rectangle on the sprite sheet
         const bleedOffset = 0.5; // Small offset to prevent pixel bleeding from adjacent frames
         const sx = bleedOffset;
         const sy = player.sprite.currentFrame * player.sprite.height + bleedOffset; // Calculate Y position based on current frame, with offset
         const sWidth = player.sprite.width - (2 * bleedOffset); // Reduce width by twice the offset
         const sHeight = player.sprite.height - (2 * bleedOffset); // Reduce height by twice the offset
-
-        // console.log(`drawPlayer(): drawImage source: sx=${sx}, sy=${sy}, sWidth=${sWidth}, sHeight=${sHeight}`); // Too verbose
 
         ctx.save(); // Save the current canvas state before applying transformations/alpha
 
