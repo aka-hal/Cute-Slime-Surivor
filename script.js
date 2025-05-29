@@ -488,6 +488,7 @@ function buyCatClaws() {
  * NEW: Handles the purchase of Twin Claw upgrade.
  */
 function buyTwinClaw() {
+    console.log("buyTwinClaw called. Current totalCatsCaught:", totalCatsCaught, "catClawsOwned:", catClawsOwned);
     if (twinClawOwned) {
         showMessage("You already own Twin Claw!", 1500);
         return;
@@ -495,6 +496,7 @@ function buyTwinClaw() {
 
     if (!catClawsOwned) {
         showMessage("You need Cat Claws first!", 1500);
+        console.log("Twin Claw purchase failed: Cat Claws not owned.");
         return;
     }
 
@@ -507,7 +509,7 @@ function buyTwinClaw() {
         console.log("Twin Claw purchased. Total cats remaining:", totalCatsCaught);
     } else {
         showMessage(`Not enough cats! Need ${TWIN_CLAW_COST - totalCatsCaught} more.`, 1500);
-        console.log("Failed to purchase Twin Claw. Not enough cats.");
+        console.log(`Twin Claw purchase failed: Not enough cats. Needed ${TWIN_CLAW_COST}, have ${totalCatsCaught}.`);
     }
 }
 
@@ -536,25 +538,32 @@ function updateCatClawsUI() {
  * NEW: Updates the UI display for the Twin Claw upgrade.
  */
 function updateTwinClawUI() {
+    console.log("updateTwinClawUI called. catClawsOwned:", catClawsOwned, "twinClawOwned:", twinClawOwned);
     if (twinClawItem && buyTwinClawButton && twinClawStatus) {
         if (!catClawsOwned) {
             twinClawItem.style.display = 'none'; // Hide Twin Claw if Cat Claws not owned
+            console.log("Twin Claw item hidden because Cat Claws not owned.");
         } else {
             twinClawItem.style.display = 'block'; // Show Twin Claw if Cat Claws owned
+            console.log("Twin Claw item shown because Cat Claws is owned.");
             if (twinClawOwned) {
                 twinClawStatus.textContent = "Owned";
                 buyTwinClawButton.disabled = true;
                 buyTwinClawButton.textContent = "Owned";
                 buyTwinClawButton.style.backgroundColor = '#6B7280';
                 buyTwinClawButton.style.cursor = 'not-allowed';
+                console.log("Twin Claw status: Owned.");
             } else {
                 twinClawStatus.textContent = `Cost: ${TWIN_CLAW_COST} Cats`;
                 buyTwinClawButton.disabled = false;
                 buyTwinClawButton.textContent = "Buy";
                 buyTwinClawButton.style.backgroundColor = '#4CAF50';
                 buyTwinClawButton.style.cursor = 'pointer';
+                console.log("Twin Claw status: Available for purchase.");
             }
         }
+    } else {
+        console.warn("updateTwinClawUI: One or more Twin Claw UI elements not found.");
     }
 }
 
@@ -923,8 +932,9 @@ function checkCollisions() {
         if (distance < player.radius + cat.radius) {
             if (cat.isTrapped) {
                 score++;
-                totalCatsCaught++;
-                if (scoreDisplay) scoreDisplay.textContent = score; // Update score display during round
+                totalCatsCaught++; // Increment total cats caught
+                if (scoreDisplay) scoreDisplay.textContent = score; // Update current round score display
+                if (totalCatsCaughtDisplay) totalCatsCaughtDisplay.textContent = totalCatsCaught; // Update total cats display in store
                 enemies.splice(i, 1);
             } else if (!player.isInvulnerable) {
                 player.health--;
