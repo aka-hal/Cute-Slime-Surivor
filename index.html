@@ -4,51 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Slime Survivor</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="game-container">
         <h1 class="text-3xl font-bold mb-4 text-white">Slime Survivor</h1>
-        <canvas id="gameCanvas"></canvas>
-        <div class="controls">
-            <p>Score: <span id="scoreDisplay">0</span> | Health: <span id="healthDisplay">10</span></p> <p id="timerDisplay">Time: 03:00</p>
-            <p>Use WASD or Arrow Keys to Move!</p>
-            <div class="button-group">
-                <button id="newGameButton" class="game-button">New Game</button>
-                <button id="storeButton" class="game-button">Store</button>
-                <button id="musicToggleButton" class="game-button">Toggle Music</button>
+        <div class="top-ui-container">
+            <div class="controls">
+                Move: W A S D or Arrow Keys | Catch cats by sliming them first!
             </div>
+            <div class="score-display-only">
+                <img id="catScoreIcon" src="https://placehold.co/32x32/ffffff/000000?text=CAT" alt="Cats Caught" class="inline-block align-middle mr-2">
+                <span id="scoreDisplay">0</span>
+            </div>
+            <button id="musicToggleButton" class="music-toggle-button">Play Music</button>
         </div>
-
+        <canvas id="gameCanvas"></canvas>
+        
         <div id="messageBox" class="message-box hidden">
-            <span id="messageText"></span>
+            <span id="messageText"></span> 
+            <div class="game-over-buttons"> 
+                <button id="newGameButton" class="new-game-button">New Game</button>
+                <button id="storeButton" class="store-button">Store</button>
+            </div>
         </div>
 
         <div id="storePanel" class="store-panel hidden">
-            <h2>Slime Store</h2>
-            <p>Total Cats Caught: <span id="totalCatsCaughtDisplay">0</span></p>
-            <div class="store-item">
-                <h3>Cat Claws</h3>
-                <p id="catClawsStatus">Cost: 10 Cats</p>
-                <button id="buyCatClawsButton" class="buy-button">Buy</button>
-            </div>
+            <h2 class="text-2xl font-bold mb-4">Slime Store</h2>
+            <p class="text-lg mb-4">Total Cats: <span id="totalCatsCaughtDisplay">0</span></p>
             
-            <div class="store-item" id="twinClawItem">
-                <h3>Twin Claw</h3>
-                <p id="twinClawStatus">Cost: 20 Cats</p>
-                <button id="buyTwinClawButton" class="buy-button">Buy</button>
+            <div id="catClawsUpgrade" class="upgrade-item">
+                <h3 class="text-xl font-semibold">Cat Claws</h3>
+                <p>Cost: <span id="catClawsCost">10</span> Cats</p>
+                <p>Effect: Automatically slashes nearby enemies (1 attack/sec).</p>
+                <button id="buyCatClawsButton" class="buy-button">Buy</button>
+                <span id="catClawsStatus" class="upgrade-status"></span>
             </div>
-            <button id="closeStoreButton" class="game-button close-button">Close Store</button>
+
+            <div id="twinClawItem" class="upgrade-item">
+                <h3 class="text-xl font-semibold">Twin Claw</h3>
+                <p>Cost: <span id="twinClawCost">20</span> Cats</p>
+                <p>Effect: Cat Claws now strike twice!</p>
+                <button id="buyTwinClawButton" class="buy-button">Buy</button>
+                <span id="twinClawStatus" class="upgrade-status"></span>
+            </div>
+
+            <button id="closeStoreButton" class="close-button">Close Store</button>
         </div>
     </div>
-
-    <audio id="gameMusic" loop muted>
-        <source src="Pixel Paws and Gooey Dreams.mp3" type="audio/mpeg">
+    <audio id="gameMusic" loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
         Your browser does not support the audio element.
     </audio>
-
     <script src="script.js"></script>
 </body>
 </html>
